@@ -1,15 +1,20 @@
 from htmlnode import HTMLNode
 
-class LeafNode(HTMLNode):
-    def __init__(self, tag: str, value: str, props: dict = None):
-        super().__init__(tag, value, None, props)
+class ParentNode(HTMLNode):
+    def __init__(self, tag: str, children: list, props: dict = None):
+        super().__init__(tag, None, children, props)
 
     def to_html(self) -> str:
-        if self.value == None:
-            raise ValueError("Value cannot be None")
         if self.tag == None:
-            return self.value
-        return f"<{self.tag}{self.props_to_html()}>{self.value}</{self.tag}>"
+            raise ValueError("Tag cannot be None")
+        if self.children == None:
+            raise ValueError("Children cannot be None")
+        return f"<{self.tag}{self.props_to_html()}>{self.iterate_children()}</{self.tag}>"
+    
+    def iterate_children(self):
+        if not self.children:
+            return ""
+        return "".join([child.to_html() for child in self.children])
     
     def props_to_html(self) -> str:
         if not self.props:
