@@ -21,5 +21,22 @@ def text_node_to_html_node(text_node):
     
     raise Exception("Invalid TextNode TextType encountered.")
 
+def split_nodes_delimiter(old_nodes, delimiter, text_type):
+    new_nodes = []
+
+    for old_node in old_nodes:
+        if old_node.text_type != TextType.TEXT:
+            new_nodes.append(old_node)
+            continue
+        sections = old_node.text.split(delimiter)
+        if len(sections) % 2 == 0:
+            raise ValueError("invalid markdown, formatted section not closed")
+        for i, part in enumerate(sections):
+            if i % 2 == 0:
+                new_nodes.append(TextNode(part, old_node.text_type))
+            else:
+                new_nodes.append(TextNode(part, text_type))
+    return new_nodes
+
 if __name__ == "__main__":
     main()
