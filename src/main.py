@@ -47,5 +47,60 @@ def extract_markdown_links(text):
     matches = re.findall(r'\[([^\]]+)\]\(([^)]+)\)', text)
     return matches
 
+def split_nodes_image(old_nodes):
+    new_nodes = []
+    for old_node in old_nodes:
+        if old_node.text_type != TextType.TEXT:
+            new_nodes.append(old_node)
+            continue
+            
+        current_text = old_node.text
+        matches = extract_markdown_images(current_text)
+        
+        if not matches:
+            new_nodes.append(old_node)
+            continue
+            
+        for match in matches:
+            image_text, image_url = match
+            parts = current_text.split(f"![{image_text}]({image_url}", 1)
+            
+            if parts[0]:
+                new_nodes.append(TextNode(parts[0], TextType.TEXT))
+            new_nodes.append(TextNode(image_text, TextType.IMAGE, image_url))
+            
+            if len(parts) > 1:
+                current_text = parts[1].lstrip(")")
+            
+    return new_nodes
+
+def split_nodes_link(old_nodes):
+    new_nodes = []
+    for old_node in old_nodes:
+        if old_node.text_type != TextType.TEXT:
+            new_nodes.append(old_node)
+            continue
+            
+        current_text = old_node.text
+        matches = extract_markdown_links(current_text)
+        
+        if not matches:
+            new_nodes.append(old_node)
+            continue
+            
+        for match in matches:
+            link_text, link_url = match
+            parts = current_text.split(f"[{link_text}]({link_url}", 1)
+            
+            if parts[0]:
+                new_nodes.append(TextNode(parts[0], TextType.TEXT))
+            new_nodes.append(TextNode(link_text, TextType.LINK, link_url))
+            
+            if len(parts) > 1:
+                current_text = parts[1].lstrip(")")
+            
+    return new_nodes
+    
+
 if __name__ == "__main__":
     main()
