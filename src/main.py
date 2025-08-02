@@ -61,16 +61,20 @@ def split_nodes_image(old_nodes):
             new_nodes.append(old_node)
             continue
             
+        remaining_text = current_text
         for match in matches:
             image_text, image_url = match
-            parts = current_text.split(f"![{image_text}]({image_url}", 1)
+            parts = remaining_text.split(f"![{image_text}]({image_url})", 1)
             
             if parts[0]:
                 new_nodes.append(TextNode(parts[0], TextType.TEXT))
             new_nodes.append(TextNode(image_text, TextType.IMAGE, image_url))
             
             if len(parts) > 1:
-                current_text = parts[1].lstrip(")")
+                remaining_text = parts[1]
+            
+        if remaining_text:
+            new_nodes.append(TextNode(remaining_text, TextType.TEXT))
             
     return new_nodes
 
@@ -88,19 +92,31 @@ def split_nodes_link(old_nodes):
             new_nodes.append(old_node)
             continue
             
+        remaining_text = current_text
         for match in matches:
             link_text, link_url = match
-            parts = current_text.split(f"[{link_text}]({link_url}", 1)
+            parts = remaining_text.split(f"[{link_text}]({link_url})", 1)
             
             if parts[0]:
                 new_nodes.append(TextNode(parts[0], TextType.TEXT))
             new_nodes.append(TextNode(link_text, TextType.LINK, link_url))
             
             if len(parts) > 1:
-                current_text = parts[1].lstrip(")")
+                remaining_text = parts[1]
+            
+        if remaining_text:
+            new_nodes.append(TextNode(remaining_text, TextType.TEXT))
             
     return new_nodes
-    
+
+def text_to_textnodes(text):
+    nodes = [TextNode(text, TextType.TEXT)]
+    nodes = split_nodes_image(nodes)
+    nodes = split_nodes_link(nodes)
+    nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
+    nodes = split_nodes_delimiter(nodes, "**", TextType.BOLD)
+    nodes = split_nodes_delimiter(nodes, "_", TextType.ITALIC)
+    return nodes
 
 if __name__ == "__main__":
     main()

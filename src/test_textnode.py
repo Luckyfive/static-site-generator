@@ -96,9 +96,36 @@ class TestTextNode(unittest.TestCase):
         )
 
     def test_split_links_no_links(self):
-        node = TextNode("This is text with no links", TextType.TEXT)
-        new_nodes = split_nodes_link([node])
-        self.assertListEqual([node], new_nodes)
+        test_node = TextNode("This is text with no links", TextType.TEXT)
+        result_nodes = split_nodes_link([test_node])
+        self.assertListEqual([test_node], result_nodes)
+
+    def test_text_to_textnodes(self):
+        text = "This is **text** with an _italic_ word and a `code block` and an ![image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [
+                TextNode("This is ", TextType.TEXT),
+                TextNode("text", TextType.BOLD),
+                TextNode(" with an ", TextType.TEXT),
+                TextNode("italic", TextType.ITALIC),
+                TextNode(" word and a ", TextType.TEXT),
+                TextNode("code block", TextType.CODE),
+                TextNode(" and an ", TextType.TEXT),
+                TextNode("image", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"),
+                TextNode(" and a ", TextType.TEXT),
+                TextNode("link", TextType.LINK, "https://boot.dev"),
+            ],
+            nodes
+        )
+
+    def test_text_to_textnodes_no_special_text(self):
+        text = "This is just plain text"
+        nodes = text_to_textnodes(text)
+        self.assertListEqual(
+            [TextNode("This is just plain text", TextType.TEXT)],
+            nodes
+        )
 
     def test_split_links_with_non_text_node(self):
         node = TextNode("This is a link", TextType.LINK, "https://example.com")
