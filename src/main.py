@@ -1,5 +1,6 @@
 from textnode import TextNode, TextType
 from leafnode import LeafNode
+from blocknode import BlockType
 import re
 
 def main():
@@ -117,6 +118,44 @@ def text_to_textnodes(text):
     nodes = split_nodes_delimiter(nodes, "**", TextType.BOLD)
     nodes = split_nodes_delimiter(nodes, "_", TextType.ITALIC)
     return nodes
+
+def markdown_to_blocks(markdown):
+    result = []
+    new_blocks = markdown.split("\n\n")
+    for i, block in enumerate(new_blocks):
+        curr_block = block.strip()
+        if not curr_block:
+            continue
+        result.append(block.strip())
+    return result
+
+def block_to_block_type(block):
+    # Check for headings (1-6 # characters)
+    if re.match(r'^#{1,6} ', block):
+        return BlockType.HEADING
+    
+    # Check for code blocks (must start AND end with ```)
+    if block.startswith("```") and block.endswith("```"):
+        return BlockType.CODE
+    
+    # Check quote block (every line must start with >)
+    lines = block.split('\n')
+    if all(line.startswith("> ") for line in lines):
+        return BlockType.QUOTE
+    
+    # Check unordered list (every line must start with -)
+    if all(line.startswith("- ") for line in lines):
+        return BlockType.UNORDERED_LIST
+    
+    # Check ordered list (must start at 1 and increment)
+    if all(bool(re.match(r'^\d+\. ', line)) for line in lines):
+        # Extract the numbers and check if they form a sequence starting at 1
+        numbers = [int(re.match(r'^(\d+)\.', line).group(1)) for line in lines]
+        if numbers[0] == 1 and all(numbers[i] == numbers[i-1] + 1 for i in range(1, len(numbers))):
+            return BlockType.ORDERED_LIST
+    
+    # Default to paragraph if no other type matches
+    return BlockType.PARAGRAPH
 
 if __name__ == "__main__":
     main()
