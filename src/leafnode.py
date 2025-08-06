@@ -19,7 +19,7 @@ class LeafNode(HTMLNode):
         return f" {props_str}"
     
     def __repr__(self):
-        print(f"{self.tag}, {self.value}, {self.children}, {self.props}")
+        return self.to_html()
 
     def __eq__(self, value):
         if self.tag != value.tag:
