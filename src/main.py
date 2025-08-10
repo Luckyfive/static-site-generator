@@ -1,13 +1,20 @@
+import os
+import re
 from textnode import TextNode, TextType
 from leafnode import LeafNode
 from blocknode import BlockType
 from htmlnode import HTMLNode
-import re
 
 def copy_files_recursive(src_dir, dest_dir):
     """
     Recursively copy files from src_dir to dest_dir.
-    First cleans the destination directory if it exists.
+    First cleans the destination directory if it    if block_type == BlockType.QUOTE:
+        # Remove > from each line and join
+        lines = [line.strip() for line in block.split('\n')]
+        text = ' '.join(line.lstrip('>').strip() for line in lines if line.strip())
+        return HTMLNode("blockquote", None, text_to_children(text))
+        
+    if block_type == BlockType.UNORDERED_LIST:s.
     """
     import os
     import shutil
@@ -40,19 +47,61 @@ def copy_files_recursive(src_dir, dest_dir):
             print(f"Copying file: {src_path} -> {dest_path}")
             shutil.copy2(src_path, dest_path)
 
-def main():
-    # Define source and destination directories relative to the project root
-    import os
+def extract_title(markdown):
+    """Extract the title (h1) from a markdown document."""
+    lines = markdown.split('\n')
+    for line in lines:
+        if line.strip().startswith('# '):
+            return line.lstrip('#').strip()
+    raise ValueError("No h1 header found in markdown document")
+
+def generate_page(from_path, template_path, dest_path):
+    """Generate an HTML page from markdown using a template."""
+    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
     
+    # Read markdown file
+    with open(from_path, 'r', encoding='utf-8') as f:
+        markdown_content = f.read()
+    
+    # Read template file
+    with open(template_path, 'r', encoding='utf-8') as f:
+        template = f.read()
+    
+    # Convert markdown to HTML
+    html_node = markdown_to_html_node(markdown_content)
+    html_content = html_node.to_html()
+    
+    # Extract title
+    title = extract_title(markdown_content)
+    
+    # Replace placeholders
+    final_html = template.replace('{{ Title }}', title).replace('{{ Content }}', html_content)
+    
+    # Create destination directory if it doesn't exist
+    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    
+    # Write output file
+    with open(dest_path, 'w', encoding='utf-8') as f:
+        f.write(final_html)
+
+def main():
     # Get the project root directory (parent of src)
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    src_dir = os.path.join(project_root, "static")
-    dest_dir = os.path.join(project_root, "public")
+    
+    # Define paths
+    static_dir = os.path.join(project_root, "static")
+    public_dir = os.path.join(project_root, "public")
+    template_path = os.path.join(project_root, "template.html")
+    content_path = os.path.join(project_root, "content", "index.md")
+    output_path = os.path.join(public_dir, "index.html")
     
     # Copy static files to public directory
-    copy_files_recursive(src_dir, dest_dir)
+    copy_files_recursive(static_dir, public_dir)
     
-    print("Static files copied successfully!")
+    # Generate the page
+    generate_page(content_path, template_path, output_path)
+    
+    print("Site generated successfully!")
 
 def text_node_to_html_node(text_node):
     if text_node.text_type == TextType.TEXT:
@@ -64,9 +113,9 @@ def text_node_to_html_node(text_node):
     if text_node.text_type == TextType.CODE:
         return LeafNode("code", text_node.text)
     if text_node.text_type == TextType.LINK:
-        return LeafNode("a", text_node.text, {"href": text_node.url})
+        return LeafNode("a", text_node.text, {"href": f'"{text_node.url}"'})
     if text_node.text_type == TextType.IMAGE:
-        return LeafNode("img", "", {"src": text_node.url, "alt": text_node.text})
+        return LeafNode("img", "", {"src": f'"{text_node.url}"', "alt": f'"{text_node.text}"'})
     
     raise Exception("Invalid TextNode TextType encountered.")
 
@@ -192,8 +241,9 @@ def block_to_block_type(block):
         return BlockType.CODE
     
     # Check quote block (every line must start with >)
-    lines = block.split('\n')
-    if all(line.startswith("> ") for line in lines):
+    lines = [line.strip() for line in block.split('\n')]
+    non_empty_lines = [line for line in lines if line]
+    if non_empty_lines and all(line.startswith(">") for line in non_empty_lines):
         return BlockType.QUOTE
     
     # Check unordered list (every line must start with -)
@@ -215,9 +265,13 @@ def markdown_to_html_node(markdown):
     blocks = markdown_to_blocks(markdown)
     children = []
     for block in blocks:
-        # Clean up newlines in the block itself
-        block = ' '.join([line.strip() for line in block.split('\n')])
-        child = block_to_html_node(block)
+        # Don't join lines for blockquotes as they need their line breaks
+        if block.strip().startswith('>'):
+            child = block_to_html_node(block)
+        else:
+            # Clean up newlines in other blocks
+            block = ' '.join([line.strip() for line in block.split('\n')])
+            child = block_to_html_node(block)
         children.append(child)
     return HTMLNode("div", None, children)
 
@@ -264,7 +318,9 @@ def block_to_html_node(block):
         
     if block_type == BlockType.QUOTE:
         # Remove > from each line and join with spaces
-        text = ' '.join(line.lstrip('> ').strip() for line in block.split('\n'))
+        lines = [line.strip() for line in block.split('\n')]
+        # Remove > and space from start of each line, but preserve other formatting
+        text = '\n'.join(line[1:].lstrip() if line.startswith('>') else line for line in lines)
         return HTMLNode("blockquote", None, text_to_children(text))
         
     if block_type == BlockType.UNORDERED_LIST:

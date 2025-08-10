@@ -1,5 +1,5 @@
 import unittest
-from main import markdown_to_html_node
+from main import markdown_to_html_node, extract_title
 from htmlnode import HTMLNode
 
 
@@ -86,6 +86,28 @@ the **same** even with inline stuff
             "<div><h1>Heading 1</h1><h2>Heading 2 with <i>italic</i></h2><h3>Heading 3 with <code>code</code></h3></div>",
         )
 
+
+    def test_extract_title(self):
+        markdown = "# My Title\n\nSome content"
+        self.assertEqual(extract_title(markdown), "My Title")
+    
+    def test_extract_title_with_multiple_hashes(self):
+        markdown = "## Not a title\n# Real Title\n### Another header"
+        self.assertEqual(extract_title(markdown), "Real Title")
+    
+    def test_extract_title_with_extra_spaces(self):
+        markdown = "#    Title with spaces    \nContent"
+        self.assertEqual(extract_title(markdown), "Title with spaces")
+    
+    def test_extract_title_no_title(self):
+        markdown = "No title here\nJust content\n## Some h2"
+        with self.assertRaises(ValueError):
+            extract_title(markdown)
+    
+    def test_extract_title_empty_document(self):
+        markdown = ""
+        with self.assertRaises(ValueError):
+            extract_title(markdown)
 
 if __name__ == "__main__":
     unittest.main()
