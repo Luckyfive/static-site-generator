@@ -84,6 +84,32 @@ def generate_page(from_path, template_path, dest_path):
     with open(dest_path, 'w', encoding='utf-8') as f:
         f.write(final_html)
 
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    """
+    Recursively generate HTML pages from markdown files in content directory
+    while maintaining the directory structure in the destination.
+    """
+    # Walk through the content directory
+    for root, dirs, files in os.walk(dir_path_content):
+        # Calculate the relative path from content dir to current dir
+        rel_path = os.path.relpath(root, dir_path_content)
+        
+        # Create corresponding destination directory
+        dest_root = os.path.join(dest_dir_path, rel_path)
+        os.makedirs(dest_root, exist_ok=True)
+        
+        # Process each markdown file
+        for file in files:
+            if file.endswith('.md'):
+                # Calculate source and destination paths
+                src_path = os.path.join(root, file)
+                # Replace .md with .html for the destination
+                dest_filename = 'index.html' if file == 'index.md' else file.replace('.md', '.html')
+                dest_path = os.path.join(dest_root, dest_filename)
+                
+                print(f"Generating {dest_path} from {src_path}")
+                generate_page(src_path, template_path, dest_path)
+
 def main():
     # Get the project root directory (parent of src)
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -92,14 +118,13 @@ def main():
     static_dir = os.path.join(project_root, "static")
     public_dir = os.path.join(project_root, "public")
     template_path = os.path.join(project_root, "template.html")
-    content_path = os.path.join(project_root, "content", "index.md")
-    output_path = os.path.join(public_dir, "index.html")
+    content_dir = os.path.join(project_root, "content")
     
     # Copy static files to public directory
     copy_files_recursive(static_dir, public_dir)
     
-    # Generate the page
-    generate_page(content_path, template_path, output_path)
+    # Generate all pages recursively
+    generate_pages_recursive(content_dir, template_path, public_dir)
     
     print("Site generated successfully!")
 
